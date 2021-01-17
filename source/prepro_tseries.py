@@ -1,16 +1,107 @@
 # -*- coding: utf-8 -*-
 """
 
-coldate
+Original file is located at    https://colab.research.google.com/drive/1-uJqGeKZfJegX0TmovhsO90iasyxZYiT
 
-smooth, autoregressive
+### Introduction
+Tabular augmentation is a new experimental space that makes use of novel and traditional data generation and synthesisation techniques to improve model prediction success. It is in essence a process of modular feature engineering and observation engineering while emphasising the order of augmentation to achieve the best predicted outcome from a given information set.
+Data augmentation can be defined as any method that could increase the size or improve the quality of a dataset by generating new features or instances without the collection of additional data-points. Data augmentation is of particular importance in image classification tasks where additional data can be created by cropping, padding, or flipping existing images.
+Tabular cross-sectional and time-series prediction tasks can also benefit from augmentation. Here we divide tabular augmentation into columnular and row-wise methods. Row-wise methods are further divided into extraction and data synthesisation techniques, whereas columnular methods are divided into transformation, interaction, and mapping methods.
+To take full advantage of tabular augmentation for time-series you would perform the techniques in the following order: (1) transforming, (2) interacting, (3) mapping, (4) extracting, and (5) synthesising (forthcoming). What follows is a practical example of how the above methodology can be used. The purpose here is to establish a framework for table augmentation and to point and guide the user to existing packages.
+See the [Skeleton Example](#example), for a combination of multiple methods that lead to a halfing of the mean squared error.
 
-groupby features
+Test sets should ideally not be preprocessed with the training data, as in such a way one could be peaking ahead in the training data. The preprocessing parameters should be identified on the test set and then applied on the test set, i.e., the test set should not have an impact on the transformation applied. As an example, you would learn the parameters of PCA decomposition on the training set and then apply the parameters to both the train and the test set.
+The benefit of pipelines become clear when one wants to apply multiple augmentation methods. It makes it easy to learn the parameters and then apply them widely. For the most part, this notebook does not concern itself with 'peaking ahead' or pipelines, for some functions, one might have to restructure to code and make use of open source pacakages to create your preferred solution.
 
+
+**Notebook Dependencies**
+pip install deltapy pykalman tsaug ta tsaug pandasvault gplearn ta seasonal pandasvault
 
 
 """
 
+
+"""Some of these categories are fluid and some techniques could fit into multiple buckets.
+This is an attempt to find an exhaustive number of techniques, but not an exhuastive list of implementations of the techniques.
+
+For example, there are thousands of ways to smooth a time-series, but we have only includes 1-2 techniques of interest under each category.
+
+### **(1) [<font color="black">Transformation:</font>](#transformation)**
+-----------------
+1. Scaling/Normalisation
+2. Standardisation
+10. Differencing
+3. Capping
+13. Operations
+4. Smoothing
+5. Decomposing
+6. Filtering
+7. Spectral Analysis
+8. Waveforms
+9. Modifications
+11. Rolling
+12. Lagging
+14. Forecast Model
+
+### **(2) [<font color="black">Interaction:</font>](#interaction)**
+-----------------
+1. Regressions
+2. Operators
+3. Discretising
+4. Normalising
+5. Distance
+6. Speciality
+7. Genetic
+
+### **(3) [<font color="black">Mapping:</font>](#mapping)**
+-----------------
+1. Eigen Decomposition
+2. Cross Decomposition
+3. Kernel Approximation
+4. Autoencoder
+5. Manifold Learning
+6. Clustering
+7. Neighbouring
+
+### **(4) [<font color="black">Extraction:</font>](#extraction)**
+-----------------
+1. Energy
+2. Distance
+3. Differencing
+4. Derivative
+5. Volatility
+6. Shape
+7. Occurence
+8. Autocorrelation
+9. Stochasticity
+10. Averages
+11. Size
+13. Count
+14. Streaks
+14. Location
+15. Model Coefficients
+16. Quantile
+17. Peaks
+18. Density
+20. Linearity
+20. Non-linearity
+21. Entropy
+22. Fixed Points
+23. Amplitude
+23. Probability
+24. Crossings
+25. Fluctuation
+26. Information
+27. Fractals
+29. Exponent
+30. Spectral Analysis
+31. Percentile
+32. Range
+33. Structural
+12. Distribution
+
+
+"""
 import warnings, os, sys, re
 warnings.filterwarnings('ignore')
 import pandas as pd, numpy as np, copy
@@ -24,14 +115,15 @@ print(root)
 
 
 ####################################################################################################
-from util_feature import   load, save_list, load_function_uri, load_function_uri2, save
+from util_feature import   load, save_list, load_function_uri, save
 
 def log(*s, n=0, m=0):
     sspace = "#" * n
     sjump = "\n" * m
     ### Implement pseudo Logging
 
-    
+
+
 ####################################################################################################
 try :
     from tsfresh import extract_relevant_features, extract_features
@@ -49,7 +141,7 @@ except :
 
 ###########################################################################################
 ###########################################################################################
-def get_sampledata():
+def data_copy():
   df = pd.read_csv("https://github.com/firmai/random-assets-two/raw/master/numpy/tsla.csv")
   df["Close_1"] = df["Close"].shift(-1)
   with pd.option_context('mode.use_inf_as_na', True):
@@ -59,60 +151,12 @@ def get_sampledata():
   return df
 
 
-
-def pd_ts_coldate(df, col, pars):
-    log("##### Coldate processing   ##########################################")
-    from utils import util_date
-    coldate = col
-    dfdate  = None
-    for coldate_i in coldate :
-        dfdate_i = util_date.pd_datestring_split( df[[coldate_i]] , coldate_i, fmt="auto", return_val= "split" )
-        dfdate   = pd.concat((dfdate, dfdate_i),axis=1)  if dfdate is not None else dfdate_i
-        # if 'path_features_store' in pars :
-        #    path_features_store = pars['path_features_store']
-        #    #save_features(dfdate_i, 'dfdate_' + coldate_i, path_features_store)
-
-    if 'path_features_store' in pars :
-        save_features(dfdate, 'dfdate', pars['path_features_store'])
-
-    col_pars = {}
-    col_pars['cols_new'] = {
-        # 'colcross_single'     :  col ,    ###list
-        'dfdate': list(dfdate.columns)  ### list
-    }
-    return dfdate, col_pars
-
-
-
-def pd_ts_groupby(df, col, pars):
-   """
-       groupby(key_lis).agg( col_stat )   
-   
-   """
-   pass
-
-
-
-def pd_ts_autoregressive(df, col, pars):
-   """
-       moving average....
-       
-   
-   """
-   pass
-
-
-
-
-
-
-
-
-
-def pd_colts_transform(df=None, pars={}, col=None):
+def pd_colts_transform2(df=None, pars={}, col=None):
     """
        pars : {  'model_name' :  "robust_scaler",
                  'model_pars'  :  {}
+
+
        }
     """
     prefix = 'colts_transform'
@@ -129,14 +173,13 @@ def pd_colts_transform(df=None, pars={}, col=None):
     else :     ### Training time  : Dynamic function load
         from util_feature import  load_function_uri
         ##### transform.robust_scaler(df, drop=["Close_1"])
-        model = load_function_uri2( model_name )
+        model = load_function_uri( model_name )
 
 
     ##### Transform Data  ############################################################
     df_out         = model(dfin, **model_pars)
 
     # Extract only returns one value, so no columns to loop over.
-    model_name2 = model_name.replace("::", "-" )
     if 'extract' in model_name:
       col_out = "0_" + model_name
     else:
@@ -161,7 +204,7 @@ def pd_colts_transform(df=None, pars={}, col=None):
     return df_out, col_pars                           
                            
 
-def test_get_methods(df):
+def get_methods(df):
   functions_methods = [ 
       { 'model_name': 'deltapy.transform::robust_scaler',                 'model_pars': {'drop':["Close_1"]} },
       { 'model_name': 'deltapy.transform::standard_scaler',               'model_pars': {'drop':["Close_1"]} },
@@ -244,31 +287,31 @@ def test_get_methods(df):
   return functions_methods
 
 def test_prepro_1():
-  df = get_sampledata(); df.head()
-  functions_methods = test_get_methods(df)
+  df = data_copy(); df.head()
+  functions_methods = get_methods(df)
 
   for model in  functions_methods :
      pars = {  'model_name' :  model['model_name'],
-              'model_pars'  :  model['model_pars']
+            'model_pars'  :  model['model_pars']
      }
      # print("[TESTING]",pars['model_name'],"...")
      df_input = copy.deepcopy(df)
      if 'a_chi' in pars['model_name']:
-        # Normalize the input for the chi
-        # print("    [INFO] Chi model...")
-        df_input = (df_input-df_input.min())/(df_input.max()-df_input.min())
+      # Normalize the input for the chi
+      # print("    [INFO] Chi model...")
+      df_input = (df_input-df_input.min())/(df_input.max()-df_input.min())
 
      if 'extract' in pars['model_name']:
-        # print("    [INFO] Extract model...")
-        df_input = df_input["Close"]
+      # print("    [INFO] Extract model...")
+      df_input = df_input["Close"]
  
-     df_out, col_pars =pd_colts_transform(df=df_input, pars=pars)
+     df_out, col_pars =pd_colts_transform2(df=df_input, pars=pars)
 
 
 
 
 def test_prepro_all():
-  df = get_sampledata(); df.head()
+  df = data_copy(); df.head()
 
   df_out = transform.robust_scaler(df, drop=["Close_1"])
   df_out = transform.standard_scaler(df, drop=["Close"])
@@ -371,17 +414,16 @@ def test_prepro_all():
 
 ###########################################################################################
 ###########################################################################################
-def pd_ts_basic(df, coldate='date_t", **kw):
+def pd_ts_basic(df, input_raw_path = None, dir_out = None, features_group_name = None, auxiliary_csv_path = None, drop_cols = None, index_cols = None, merge_cols_mapping = None, cat_cols = None, id_cols = None, dep_col = None, coldate = None, max_rows = 10):
     df['date_t'] = pd.to_datetime(df[coldate])
     df['year'] = df['date_t'].dt.year
     df['month'] = df['date_t'].dt.month
     df['week'] = df['date_t'].dt.week
     df['day'] = df['date_t'].dt.day
     df['dayofweek'] = df['date_t'].dt.dayofweek
-    return df[['year', 'month', 'week', 'day', 'dayofweek'] ]
+    return df[['year', 'month', 'week', 'day', 'dayofweek'] ], []
 
 
-                
 def pd_ts_identity(df, input_raw_path = None, dir_out = None, features_group_name = None, auxiliary_csv_path = None, drop_cols = None, index_cols = None, merge_cols_mapping = None, cat_cols = None, id_cols = None, dep_col = None, coldate = None, max_rows = 10):
     df_drop_cols = [x for x in df.columns.tolist() if x in drop_cols]
     df = df.drop(df_drop_cols, axis = 1)
@@ -482,116 +524,3 @@ def pd_tsfresh_features_single_row(df_single_row, cols):
 if __name__ == "__main__":
   import fire
   fire.Fire()
-
-                
-"""
-
-Original file is located at    https://colab.research.google.com/drive/1-uJqGeKZfJegX0TmovhsO90iasyxZYiT
-
-### Introduction
-Tabular augmentation is a new experimental space that makes use of novel and traditional data generation and synthesisation techniques to improve model prediction success. It is in essence a process of modular feature engineering and observation engineering while emphasising the order of augmentation to achieve the best predicted outcome from a given information set.
-Data augmentation can be defined as any method that could increase the size or improve the quality of a dataset by generating new features or instances without the collection of additional data-points. Data augmentation is of particular importance in image classification tasks where additional data can be created by cropping, padding, or flipping existing images.
-Tabular cross-sectional and time-series prediction tasks can also benefit from augmentation. Here we divide tabular augmentation into columnular and row-wise methods. Row-wise methods are further divided into extraction and data synthesisation techniques, whereas columnular methods are divided into transformation, interaction, and mapping methods.
-To take full advantage of tabular augmentation for time-series you would perform the techniques in the following order: (1) transforming, (2) interacting, (3) mapping, (4) extracting, and (5) synthesising (forthcoming). What follows is a practical example of how the above methodology can be used. The purpose here is to establish a framework for table augmentation and to point and guide the user to existing packages.
-See the [Skeleton Example](#example), for a combination of multiple methods that lead to a halfing of the mean squared error.
-
-Test sets should ideally not be preprocessed with the training data, as in such a way one could be peaking ahead in the training data. The preprocessing parameters should be identified on the test set and then applied on the test set, i.e., the test set should not have an impact on the transformation applied. As an example, you would learn the parameters of PCA decomposition on the training set and then apply the parameters to both the train and the test set.
-The benefit of pipelines become clear when one wants to apply multiple augmentation methods. It makes it easy to learn the parameters and then apply them widely. For the most part, this notebook does not concern itself with 'peaking ahead' or pipelines, for some functions, one might have to restructure to code and make use of open source pacakages to create your preferred solution.
-
-pip install deltapy pykalman tsaug ta tsaug pandasvault gplearn ta seasonal pandasvault
-
-Some of these categories are fluid and some techniques could fit into multiple buckets.
-This is an attempt to find an exhaustive number of techniques, but not an exhuastive list of implementations of the techniques.
-
-For example, there are thousands of ways to smooth a time-series, but we have only includes 1-2 techniques of interest under each category.
-
-
-
-####
-date addon
-groupby (date, cat2, cat2) statistics.
-
-autoregressive  : past data avg.
-
-
-
-
-(#transformation)**
------------------
-1. Scaling/Normalisation
-2. Standardisation
-10. Differencing
-3. Capping
-13. Operations
-4. Smoothing
-5. Decomposing
-6. Filtering
-7. Spectral Analysis
-8. Waveforms
-9. Modifications
-11. Rolling
-12. Lagging
-14. Forecast Model
-
-(#interaction)**
------------------
-1. Regressions
-2. Operators
-3. Discretising
-4. Normalising
-5. Distance
-6. Speciality
-7. Genetic
-
-(#mapping)**
------------------
-1. Eigen Decomposition
-2. Cross Decomposition
-3. Kernel Approximation
-4. Autoencoder
-5. Manifold Learning
-6. Clustering
-7. Neighbouring
-
-
-(#extraction)**
------------------
-1. Energy
-2. Distance
-3. Differencing
-4. Derivative
-5. Volatility
-6. Shape
-7. Occurence
-8. Autocorrelation
-9. Stochasticity
-10. Averages
-11. Size
-13. Count
-14. Streaks
-14. Location
-15. Model Coefficients
-16. Quantile
-17. Peaks
-18. Density
-20. Linearity
-20. Non-linearity
-21. Entropy
-22. Fixed Points
-23. Amplitude
-23. Probability
-24. Crossings
-25. Fluctuation
-26. Information
-27. Fractals
-29. Exponent
-30. Spectral Analysis
-31. Percentile
-32. Range
-33. Structural
-12. Distribution
-
-
-"""                
-                
-                
